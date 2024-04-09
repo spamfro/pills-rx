@@ -1,0 +1,15 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0px;
+  padding: 8px;
+  position: absolute;
+  width: 100%;
+}
+.d-none {
+  display: none;
+}
