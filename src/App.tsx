@@ -28,7 +28,7 @@ function createAppRouter() {
 function Layout() {
   return (
     <>
-      <h1>Pills Rx</h1>
+      <h1 className='title'>Pills Rx</h1>
       <Outlet />
     </>
   );
@@ -41,7 +41,6 @@ class Dates {
     return new Date(dt.getTime() + n * 24 * 60 * 60 * 1000);
   }
   static *range(bdt: Date, edt?: Date): Generator<Date> {
-    yield bdt;
     for (let dt = bdt; edt === undefined || dt < edt; dt = Dates.addDays(dt, 1)) {
       yield dt;
     }
@@ -60,6 +59,20 @@ function Prescription() {
   const range = Dates.range(startDate, Dates.addDays(startDate, 14));  // TODO
 
   useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        commitProducts();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const removeVisibilityChangeHandler = document.removeEventListener.bind(document, 'visibilitychange', handleVisibilityChange);
+
+    function handleBeforeUnload() {
+      commitProducts();
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    const removeBeforeUnloadHandler = window.removeEventListener.bind(window, 'beforeunload', handleBeforeUnload);
+
     const controller = new AbortController();
 
     async function fetchProducts() {
@@ -71,17 +84,24 @@ function Prescription() {
 
       setProducts(products);
     }
+    async function commitProducts() {
+      console.log('commit dirty');  // TODO
+    }
 
     fetchProducts();
 
-    return () => { controller.abort() };  // AbortError
+    return () => {
+      controller.abort();  // AbortError
+      removeBeforeUnloadHandler();
+      removeVisibilityChangeHandler();
+    };
   }, []);
 
   return (
     <>
-      <table>
+      <table className='prescription'>
         <thead>
-          <tr>
+          <tr className='slots'>
             <th colSpan={2}></th>
             <th colSpan={1}>8am</th>
             <th colSpan={2}>12pm</th>
@@ -99,12 +119,12 @@ function Prescription() {
           {Array.from(range).map((dt, day) => {
             return (
               <tr key={day}>
-                <td>{day + 1}</td>
-                <td>{Format.weekDay(dt)}</td>
-                <td><input type='checkbox' /></td>
-                <td><input type='checkbox' /></td>
-                <td><input type='checkbox' /></td>
-                <td><input type='checkbox' /></td>
+                <td className='day'>{day + 1}</td>
+                <td className='date'>{Format.weekDay(dt)}</td>
+                <td className='take'><input type='checkbox' /></td>
+                <td className='take'><input type='checkbox' /></td>
+                <td className='take'><input type='checkbox' /></td>
+                <td className='take'><input type='checkbox' /></td>
               </tr>
             );
           })}

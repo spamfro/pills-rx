@@ -2,6 +2,7 @@
   box-sizing: border-box;
 }
 body {
+  align-items: center;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -12,4 +13,16 @@ body {
 }
 .d-none {
   display: none;
+}
+.title {
+  text-align: center;
+}
+table.prescription tr.slots th {
+  padding: 0 10px;
+}
+table.prescription td.day {
+  padding: 0 10px;
+}
+table.prescription td.take {
+  text-align: center;
 }
