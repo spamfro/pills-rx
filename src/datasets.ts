@@ -6,7 +6,7 @@ export class ProductDataset {
   rows = new Array<ProductRow>();
   index = new Map<number, ProductRow>();
 
-  constructor(header: string[], values: Array<[any]>) {
+  constructor(header: string[], values: Array<any[]>) {
     const schema = new Map(header.map((x, i) => [x, i]));
     values.forEach(value => {
       const id = parseInt(value[schema.get('ID') ?? -1]);

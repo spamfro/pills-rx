@@ -22,7 +22,12 @@ table.prescription tr.slots th {
 }
 table.prescription td.day {
   padding: 0 10px;
+  text-align: right;
 }
 table.prescription td.take {
   text-align: center;
+}
+table.legend td.key {
+  font-weight: bold;
+  text-align: right;
 }
