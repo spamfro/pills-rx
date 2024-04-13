@@ -33,7 +33,10 @@ function createAppRouter() {
         <Route path='/' element={<Layout />} >
           <Route index element={<PrescriptionPage />} />
         </Route>
-      )
+      ),
+      {
+        basename: window.location.pathname
+      }
     )
   );
 }
@@ -50,6 +53,7 @@ function Layout() {
 function PrescriptionPage() {
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const services = useContext(ServicesContext);
+  const startDate = new Date(2024, 3, 9);  // TODO: should be part of model
   
   useEffect(() => {
     const controller = new AbortController();
@@ -66,7 +70,7 @@ function PrescriptionPage() {
   return (
     <>
       {prescription 
-        ? <ScheduleTable schedule={prescription.schedule(new Date())} />
+        ? <ScheduleTable schedule={prescription.schedule(startDate)} />
         : <p>Loading...</p>}
     </>
   );
