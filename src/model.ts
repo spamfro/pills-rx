@@ -1,58 +1,67 @@
-import { ProductDataset } from "./datasets";
-import { Dates } from "./utils";
 
-export class Prescription {
-  takes: Take[];
+import { Db } from './services';
 
-  constructor(_products: ProductDataset) {
-    // TODO: build from datasets...
+export namespace Model {
+  
+  export class Prescription {
+    start: Date;
+    numDays: number;
+    takes: Take[];
     
-    const drugs = new Map<number, Drug>([
-      [1, { description: 'Сефпотек 200мг' }],
-      [2, { description: 'Лимекс Форте' }],
-      [3, { description: 'Микомакс 150мг' }],
-    ]);
-    this.takes = [
-      { slots: [800, 2000], drug: drugs.get(1)!, dose: 1,
-        rule: { ks: [0], r: 1, n: 14 }
-      },
-      { slots: [1200], drug: drugs.get(2)!, dose: 1,
-        rule: { ks: [0], r: 1, n: 14 }
-      },
-      { slots: [1200], drug: drugs.get(3)!, dose: 1,
-        rule: { ks: [1,6,13], r: 14, n: 14 }
-      },
-    ];
+    constructor(
+      id: number, 
+      db: { 
+        drugs: Db.Drug[],
+        prescriptions: Db.Prescription[],
+        rules: Db.Rule[],
+        takes: Db.Take[]
+    }) {
+  
+      const prescription = db.prescriptions.find(({ id: prescriptionId }) => prescriptionId === id);
+      if (prescription === undefined) { throw new Error('Not found') }
+      const { start, numDays } = prescription;
+  
+      const drugById = db.drugs.reduce((acc, drug) => acc.set(drug.id, drug), new Map());
+      const ruleById = db.rules.reduce((acc, rule) => (acc.get(rule.id) ?? acc.set(rule.id, new Rule(rule.days, numDays, rule.cycleNumDays)), acc), new Map());
+  
+      const slotByTime = db.takes.flatMap(take => take.slots)
+        .reduce((acc, time) => (acc.get(time) ?? acc.set(time, { time }), acc), new Map());
+  
+      const takes = db.takes.filter(({ pid: takePid }) => takePid === id)
+      .map(({ did, dose, slots: takeSlots, rid}) => {
+        const drug = drugById.get(did);
+        const slots = takeSlots.map(time => slotByTime.get(time)).filter(Boolean);
+        const rule = ruleById.get(rid);
+        if (!drug || slots.length === 0) { throw new Error('Bad data') }
+        return { drug, dose, slots, rule };
+      });
+  
+      this.start = start;
+      this.numDays = numDays;
+      this.takes = takes;
+    }
   }
 
-  schedule(start: Date): Schedule {
-    let numDays = Math.max(...this.takes.map(({ rule: { n } }) => n));
-    const schedule: Schedule = [];
-    for (let i = 0; i < numDays; ++i) {
-      const date = Dates.addDays(start, i);
-      const slots: Slot[] = [];
-      for (const { slots: takeSlots, drug, dose, rule } of this.takes) {
-        if (Prescription.isAcceptable(i, rule)) {
-          slots.push(...takeSlots.map(slot => ({ slot, drug, dose })));
-        }
-      }
-      slots.sort(Prescription.compareSlots);
-      schedule.push({ date, slots });
-    }    
-    return schedule;
+  export interface Slot {
+    time: number;
+  }
+  
+  class Rule {
+    constructor(
+      public days: number[], 
+      public numDays: number, 
+      public cycleNumDays?: number) {
+    }
+    includes(day: number, numDays: number): boolean {
+      const r = this.cycleNumDays || numDays;
+      return this.days.some(k => day % r === k);
+    }
   }
 
-  static isAcceptable(i: number, { ks, r, n }: Rule): boolean {
-    return i < n && ks.some(k => i % r == k);
+  export interface Take {
+    drug: Db.Drug;
+    dose: number;
+    slots: Slot[];
+    rule?: Rule;
   }
-  static compareSlots(lhs: Slot, rhs: Slot): number {
-    if (lhs.slot !== rhs.slot) { return lhs.slot - rhs.slot }
-    return lhs.drug.description.localeCompare(rhs.drug.description);
-  }
-}
-
-export type Schedule = { date: Date; slots: Slot[] }[];
-type Slot = { slot: number; drug: Drug; dose: number };
-type Take = { slots: number[]; drug: Drug; dose: number; rule: Rule }
-export type Drug = { description: string }
-type Rule = { ks: number[], r: number, n: number }
+}  // namespace Model
